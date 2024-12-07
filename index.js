@@ -13,9 +13,14 @@ const app = express();
 app.use(express.json({ extended: true }))
 app.use(express.urlencoded({ extended: true }))
 app.use(cors({
-    credentials: true,
+    credentials: false,
     origin: ['http://localhost:3000', 'https://inspiring-smakager-cf459d.netlify.app']
 }))
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+});
 app.use(upload())
 app.use('/uploads', express.static(__dirname + '/uploads'))
 
