@@ -14,7 +14,7 @@ app.use(express.json({ extended: true }))
 app.use(express.urlencoded({ extended: true }))
 app.use(cors({
     credentials: false,
-    origin: ['http://localhost:3000', 'https://inspiring-smakager-cf459d.netlify.app']
+    origin: ['http://localhost:3000', 'https://jocular-cat-aea461.netlify.app']
 }))
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
