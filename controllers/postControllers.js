@@ -204,29 +204,50 @@ const editPost = async (req, res, next) => {
 
 
 const removePost = async (req, res, next) => {
-    const postID = req.params.id;
-    if (!postID) {
-        return next(new HttpError("Post unavailable"))
-    }
-    const post = await Post.findById(postID);
-    const fileName = post?.thumbnail;
-    if (req.user.id == post.creator) {
+    try {
+        const postID = req.params.id;
+        console.log("Tentative de suppression du post:", postID);
 
-        fs.unlink(path.join(__dirname, '..', 'uploads', fileName), async (err) => {
-            if (err) {
-                return next(err)
-            } else {
-                await Post.findByIdAndDelete(postID)
+        if (!postID) {
+            return next(new HttpError("Post not found", 404));
+        }
 
-                const currentUser = await User.findById(req.user.id)
-                const userPostCount = currentUser?.posts - 1;
-                await User.findByIdAndUpdate(req.user.id, { posts: userPostCount })
-                res.json(`Post ${postID} deleted`)
-            }
-        })
-    } else {
-        return next(new HttpError("Couldn't delete post.", 403))
+        const post = await Post.findById(postID);
+        if (!post) {
+            return next(new HttpError("Post not found", 404));
+        }
+
+        if (req.user.id !== post.creator.toString()) {
+            return next(new HttpError("Not authorized", 403));
+        }
+
+
+        const fileName = post.thumbnail;
+        const filePath = path.join(__dirname, '..', 'uploads', fileName);
+
+        try {
+            await fs.promises.unlink(filePath);
+        } catch (error) {
+            console.log("Erreur suppression fichier:", error);
+
+        }
+
+
+        await Post.findByIdAndDelete(postID);
+
+
+        const currentUser = await User.findById(req.user.id);
+        if (currentUser) {
+            const userPostCount = Math.max(0, (currentUser.posts || 0) - 1);
+            await User.findByIdAndUpdate(req.user.id, { posts: userPostCount });
+        }
+
+        res.status(200).json({ message: "Post supprimé avec succès" });
+
+    } catch (error) {
+        console.error("Erreur de suppression:", error);
+        return next(new HttpError("Erreur lors de la suppression", 500));
     }
-}
+};
 
 module.exports = { getPosts, getPost, getCatPosts, getUserPosts, createPost, editPost, removePost }
