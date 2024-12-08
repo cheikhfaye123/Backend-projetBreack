@@ -8,7 +8,6 @@ const { mongoose } = require('mongoose')
 
 
 
-
 const createPost = async (req, res, next) => {
     try {
         let { title, category, description } = req.body;
@@ -18,34 +17,39 @@ const createPost = async (req, res, next) => {
 
         const { thumbnail } = req.files;
 
-        if (thumbnail.size > 2000000) {
-            return next(new HttpError("Thumbnail too big. File size should be less than 2mb"))
+
+        const uploadsDir = path.join(__dirname, '..', 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
         }
 
-        let fileName;
-        fileName = thumbnail.name;
+
+        let fileName = thumbnail.name;
         let splittedFilename = fileName.split('.')
         let newFilename = splittedFilename[0] + uuid() + "." + splittedFilename[splittedFilename.length - 1]
-        thumbnail.mv(path.join(__dirname, '..', 'uploads', newFilename), async (err) => {
-            if (err) {
-                return next(new HttpError(err))
-            } else {
-                const newPost = await Post.create({ title, category, description, thumbnail: newFilename, creator: req.user.id });
-                if (!newPost) {
-                    return next(new HttpError("Something went wrong.", 422))
-                }
 
-                const currentUser = await User.findById(req.user.id)
-                const userPostCount = currentUser?.posts + 1;
-                await User.findByIdAndUpdate(req.user.id, { posts: userPostCount })
 
-                res.status(201).json(newPost)
-            }
-        })
+        await thumbnail.mv(path.join(__dirname, '..', 'uploads', newFilename));
+
+
+        if (!fs.existsSync(path.join(__dirname, '..', 'uploads', newFilename))) {
+            return next(new HttpError("Erreur lors de la sauvegarde de l'image"))
+        }
+
+        const newPost = await Post.create({
+            title,
+            category,
+            description,
+            thumbnail: newFilename,
+            creator: req.user.id
+        });
+
+        res.status(201).json(newPost)
     } catch (error) {
         return next(new HttpError(error))
     }
 }
+
 
 
 
